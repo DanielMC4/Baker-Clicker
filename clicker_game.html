@@ -1,0 +1,452 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Full Clicker Game</title>
+  <style>
+    :root{
+      --bg:#0f1724; --card:#0b1220; --accent:#ffb86b; --muted:#94a3b8; --glass: rgba(255,255,255,0.04);
+      --success:#4ade80; --danger:#fb7185; --glass-2: rgba(255,255,255,0.03);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;background:linear-gradient(180deg,#071022 0%, #07182a 100%);color:#e6eef8}
+    .wrap{max-width:1100px;margin:28px auto;padding:20px;display:grid;grid-template-columns: 1fr 380px;gap:20px}
+    .panel{background:linear-gradient(180deg,var(--card), #07101a);border-radius:14px;padding:18px;box-shadow:0 8px 30px rgba(2,6,23,0.6);border:1px solid rgba(255,255,255,0.03)}
+
+    /* left big area */
+    .game-area{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;min-height:520px}
+    .big-btn{width:300px;height:300px;border-radius:999px;background:radial-gradient(circle at 30% 20%, #ffd9b2 0%, #ffb86b 40%, #ff8f3c 100%);display:flex;align-items:center;justify-content:center;cursor:pointer;user-select:none;box-shadow:0 18px 50px rgba(255,150,50,0.14), inset 0 -8px 20px rgba(0,0,0,0.12);transition:transform .08s ease}
+    .big-btn:active{transform:scale(.96)}
+    .big-btn .label{font-size:28px;color:#1b1b1b;font-weight:700;text-shadow:0 2px 0 rgba(255,255,255,0.2)}
+
+    .hud{display:flex;gap:12px;align-items:center}
+    .stat{background:var(--glass);padding:10px 14px;border-radius:10px;color:var(--muted);font-weight:600}
+    .stat strong{display:block;color:var(--accent);font-size:20px}
+
+    /* right column */
+    .sidebar{display:flex;flex-direction:column;gap:12px}
+    .section-title{font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+
+    .upgrades{display:grid;grid-template-columns:1fr;gap:10px;max-height:360px;overflow:auto;padding-right:6px}
+    .upgrade{display:flex;align-items:center;gap:12px;padding:10px;border-radius:10px;background:linear-gradient(180deg,var(--glass-2),transparent);border:1px solid rgba(255,255,255,0.02)}
+    .upgrade .info{flex:1}
+    .upgrade .name{font-weight:700}
+    .upgrade small{color:var(--muted)}
+    .upgrade button{background:linear-gradient(180deg,#1b2430,#12202b);border-radius:8px;padding:8px 10px;border:1px solid rgba(255,255,255,0.04);color:var(--accent);cursor:pointer}
+    .upgrade.locked{opacity:.5}
+
+    .controls{display:flex;gap:8px}
+    .ghost-btn{background:transparent;border:1px dashed rgba(255,255,255,0.04);padding:8px 10px;border-radius:8px;color:var(--muted);cursor:pointer}
+
+    .log{background:linear-gradient(180deg,#06101a,transparent);padding:12px;border-radius:10px;min-height:80px;max-height:120px;overflow:auto;font-size:13px;color:var(--muted)}
+
+    .footer{display:flex;justify-content:space-between;align-items:center;margin-top:10px;color:var(--muted);font-size:13px}
+
+    /* achievement badges */
+    .ach-grid{display:flex;gap:8px;flex-wrap:wrap}
+    .ach{padding:8px 10px;border-radius:8px;background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent);font-size:13px}
+
+    /* responsive */
+    @media(max-width:980px){.wrap{grid-template-columns:1fr;padding:12px}.big-btn{width:250px;height:250px}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="panel game-area">
+      <div class="hud">
+        <div class="stat">Cookies <strong id="cookies">0</strong></div>
+        <div class="stat">CPS <strong id="cps">0</strong></div>
+        <div class="stat">Clicks <strong id="clicks">0</strong></div>
+      </div>
+
+      <div id="bigBtn" class="big-btn" tabindex="0" role="button" aria-pressed="false">
+        <div class="label" id="bigLabel">Bake!</div>
+      </div>
+
+      <div style="width:100%;max-width:720px;text-align:center;color:var(--muted);">
+        <div style="display:flex;justify-content:center;gap:8px;align-items:center;margin-bottom:8px">
+          <div class="controls">
+            <button class="ghost-btn" id="saveBtn">Save</button>
+            <button class="ghost-btn" id="exportBtn">Export</button>
+            <button class="ghost-btn" id="importBtn">Import</button>
+            <button class="ghost-btn" id="resetBtn">Reset</button>
+          </div>
+        </div>
+        <div class="log" id="log" aria-live="polite">Welcome! Click the <strong>Bake!</strong> button to earn cookies.</div>
+      </div>
+    </div>
+
+    <aside class="panel sidebar">
+      <div>
+        <div class="section-title">Upgrades</div>
+        <div class="upgrades" id="upgrades"></div>
+      </div>
+
+      <div>
+        <div class="section-title">Store</div>
+        <div class="upgrades" id="store"></div>
+      </div>
+
+      <div>
+        <div class="section-title">Achievements</div>
+        <div class="ach-grid" id="achievements"></div>
+      </div>
+
+      <div class="footer">
+        <div>Version 1.0</div>
+        <div id="lastSaved" style="color:var(--muted);font-size:12px">Not saved</div>
+      </div>
+    </aside>
+  </div>
+
+  <template id="upgradeTemplate">
+    <div class="upgrade">
+      <div class="info">
+        <div class="name">NAME</div>
+        <small class="desc">DESCRIPTION</small>
+      </div>
+      <div>
+        <div style="text-align:right"><strong class="cost">0</strong></div>
+        <div style="margin-top:8px"><button class="buyBtn">Buy</button></div>
+      </div>
+    </div>
+  </template>
+
+  <script>
+    /* ===== Simple clicker game engine =====
+       Features:
+         - Manual clicks (cookies)
+         - Upgrade store (one-time purchases and repeatable auto-producers)
+         - Multipliers
+         - Achievements
+         - Save/load (localStorage)
+         - Export/Import JSON
+         - Keyboard shortcuts: Space to click, S to save
+    */
+
+    // Utils
+    const fmt = n => {
+      if (n < 1000) return Math.floor(n).toString();
+      const power = Math.floor(Math.log10(Math.abs(n)) / 3);
+      const suffix = ['K','M','B','T','Qa','Qi'][power-1] || ('e'+(power*3));
+      const val = n / Math.pow(1000, power);
+      return val.toFixed(val<10?2:1) + suffix;
+    };
+
+    // Initial game state
+    const DEFAULT = {
+      cookies: 0,
+      clicks: 0,
+      cps: 0,
+      multiplier: 1,
+      upgrades: {}, // bought one-time upgrades
+      producers: {}, // repeatable producers {id:count}
+      unlocked: {},
+      achievements: {},
+      lastSaved: null
+    };
+
+    const SAVE_KEY = 'full_clicker_v1';
+
+    // Items definition (store & upgrades)
+    const ITEMS = {
+      clickPower: { id:'clickPower', name:'Stronger Hands', desc:'Increase cookies per click by +1', cost:50, effect:(g)=>{g.multiplier += 1}, type:'one-time' },
+      clickPower2:{ id:'clickPower2', name:'Gloved Hands', desc:'+5 cookies per click', cost:500, effect:(g)=>{g.multiplier += 5}, type:'one-time' },
+
+      baker: { id:'baker', name:'Baker', desc:'Auto-bakes cookies (1 cps). Repeatable', cost:15, baseCps:1, type:'producer' },
+      oven:  { id:'oven', name:'Oven', desc:'Better oven (10 cps)', cost:150, baseCps:10, type:'producer' },
+      factory:{ id:'factory', name:'Factory', desc:'Automates production (100 cps)', cost:1200, baseCps:100, type:'producer' }
+    };
+
+    // Achievements
+    const ACH = [
+      {id:'firstClick', name:'First Click', desc:'Make your first click', cond:g=>g.clicks >= 1, reward:()=>{}},
+      {id:'100Clicks', name:'100 Clicks', desc:'Click 100 times', cond:g=>g.clicks >= 100, reward:()=>{}},
+      {id:'10kCookies', name:'10k Cookies', desc:'Have 10,000 cookies total', cond:g=>g.cookies >= 10000, reward:()=>{}},
+    ];
+
+    // Game engine
+    let game = JSON.parse(JSON.stringify(DEFAULT));
+
+    // DOM refs
+    const el = id => document.getElementById(id);
+    const cookiesEl = el('cookies');
+    const cpsEl = el('cps');
+    const clicksEl = el('clicks');
+    const bigBtn = el('bigBtn');
+    const bigLabel = el('bigLabel');
+    const upgradesWrap = el('upgrades');
+    const storeWrap = el('store');
+    const logEl = el('log');
+    const achWrap = el('achievements');
+    const lastSavedEl = el('lastSaved');
+
+    // initialize UI
+    function createUpgradeNode(item){
+      const tpl = document.getElementById('upgradeTemplate');
+      const node = tpl.content.firstElementChild.cloneNode(true);
+      node.dataset.id = item.id;
+      node.querySelector('.name').textContent = item.name;
+      node.querySelector('.desc').textContent = item.desc;
+      node.querySelector('.cost').textContent = item.cost;
+      const btn = node.querySelector('.buyBtn');
+      btn.addEventListener('click', ()=>buyItem(item));
+      return node;
+    }
+
+    function renderStore(){
+      storeWrap.innerHTML = '';
+      upgradesWrap.innerHTML = '';
+      Object.values(ITEMS).forEach(item =>{
+        const node = createUpgradeNode(item);
+        if(item.type === 'producer') storeWrap.appendChild(node);
+        else upgradesWrap.appendChild(node);
+      });
+      updateUI();
+    }
+
+    function log(msg){
+      const time = new Date().toLocaleTimeString();
+      const line = document.createElement('div');
+      line.textContent = `[${time}] ${msg}`;
+      logEl.prepend(line);
+      // keep at most 200 lines
+      while(logEl.children.length > 200) logEl.removeChild(logEl.lastChild);
+    }
+
+    // Core actions
+    function clickBake(){
+      const perClick = 1 * game.multiplier;
+      game.cookies += perClick;
+      game.clicks += 1;
+      flashBigButton();
+      checkAchievements();
+      updateUI();
+      playTick();
+    }
+
+    // Purchase
+    function buyItem(item){
+      if(item.type === 'one-time'){
+        if(game.upgrades[item.id]) return log('Already purchased.');
+        if(game.cookies < item.cost) return log('Not enough cookies.');
+        game.cookies -= item.cost;
+        game.upgrades[item.id] = true;
+        if(item.effect) item.effect(game);
+        log(`Purchased: ${item.name}`);
+      } else if(item.type === 'producer'){
+        if(game.cookies < item.cost) return log('Not enough cookies.');
+        game.cookies -= item.cost;
+        game.producers[item.id] = (game.producers[item.id] || 0) + 1;
+        log(`Bought ${item.name} (x${game.producers[item.id]})`);
+      }
+      recalcCps();
+      updateUI();
+    }
+
+    // Calculate CPS
+    function recalcCps(){
+      let total = 0;
+      Object.entries(game.producers).forEach(([id,count])=>{
+        const it = ITEMS[id];
+        if(it && it.baseCps) total += it.baseCps * count;
+      });
+      game.cps = total;
+    }
+
+    // Tick (every second) to add cookies from producers
+    function tick(){
+      if(game.cps > 0){
+        game.cookies += game.cps;
+        checkAchievements();
+        updateUI();
+      }
+    }
+
+    // Achievements check
+    function checkAchievements(){
+      ACH.forEach(a =>{
+        if(!game.achievements[a.id] && a.cond(game)){
+          game.achievements[a.id] = true;
+          announceAchievement(a);
+        }
+      });
+      renderAchievements();
+    }
+
+    function announceAchievement(a){
+      log(`Achievement: ${a.name} — ${a.desc}`);
+      // little toast animation
+      const toast = document.createElement('div');
+      toast.textContent = `🏆 ${a.name}`;
+      toast.style.position = 'fixed';
+      toast.style.left = '50%';
+      toast.style.transform = 'translateX(-50%)';
+      toast.style.bottom = '20px';
+      toast.style.background = 'linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))';
+      toast.style.padding = '10px 14px';
+      toast.style.borderRadius = '8px';
+      toast.style.boxShadow = '0 10px 30px rgba(0,0,0,0.5)';
+      toast.style.zIndex = 9999;
+      document.body.appendChild(toast);
+      setTimeout(()=>{toast.style.opacity=0;toast.style.transform='translateX(-50%) translateY(20px)';},1800);
+      setTimeout(()=>toast.remove(),2600);
+    }
+
+    function renderAchievements(){
+      achWrap.innerHTML = '';
+      ACH.forEach(a=>{
+        const d = document.createElement('div');
+        d.className = 'ach';
+        d.textContent = a.name + (game.achievements[a.id] ? ' ✅' : '');
+        achWrap.appendChild(d);
+      });
+    }
+
+    // UI updates
+    function updateUI(){
+      cookiesEl.textContent = fmt(game.cookies);
+      cpsEl.textContent = fmt(game.cps);
+      clicksEl.textContent = String(game.clicks);
+
+      // store button states
+      document.querySelectorAll('.upgrade').forEach(node=>{
+        const id = node.dataset.id;
+        const item = ITEMS[id];
+        const cost = item.cost;
+        const affordable = game.cookies >= cost;
+        node.querySelector('.cost').textContent = fmt(cost);
+        const btn = node.querySelector('.buyBtn');
+        btn.disabled = !affordable;
+        if(!affordable) btn.style.opacity = 0.6; else btn.style.opacity = 1;
+
+        if(item.type === 'one-time'){
+          if(game.upgrades[item.id]) { node.classList.add('locked'); node.querySelector('.buyBtn').textContent = 'Owned'; }
+          else node.classList.remove('locked');
+        } else {
+          node.querySelector('.buyBtn').textContent = 'Buy';
+        }
+      });
+
+      lastSavedEl.textContent = game.lastSaved ? `Saved ${new Date(game.lastSaved).toLocaleString()}` : 'Not saved';
+    }
+
+    // Save / Load
+    function saveGame(){
+      try{
+        game.lastSaved = Date.now();
+        localStorage.setItem(SAVE_KEY, JSON.stringify(game));
+        log('Game saved.');
+        updateUI();
+      }catch(e){console.error(e);log('Save failed.');}
+    }
+
+    function loadGame(){
+      try{
+        const raw = localStorage.getItem(SAVE_KEY);
+        if(!raw) return; // no save
+        const parsed = JSON.parse(raw);
+        game = Object.assign({}, DEFAULT, parsed);
+        recalcCps();
+        renderStore();
+        renderAchievements();
+        updateUI();
+        log('Loaded save.');
+      }catch(e){console.error(e);log('Load failed.');}
+    }
+
+    function resetGame(){
+      if(!confirm('Reset game? This will delete your local save.')) return;
+      localStorage.removeItem(SAVE_KEY);
+      game = JSON.parse(JSON.stringify(DEFAULT));
+      recalcCps();
+      renderStore();
+      renderAchievements();
+      updateUI();
+      log('Game reset.');
+    }
+
+    // Export / Import
+    function exportSave(){
+      const data = btoa(unescape(encodeURIComponent(JSON.stringify(game))));
+      navigator.clipboard?.writeText(data).then(()=>log('Export copied to clipboard.'));
+      // also prompt for download
+      const blob = new Blob([JSON.stringify(game, null, 2)], {type:'application/json'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = 'clicker_save.json'; a.click(); URL.revokeObjectURL(url);
+    }
+
+    function importSave(){
+      const txt = prompt('Paste exported save string (or JSON)');
+      if(!txt) return;
+      try{
+        let parsed;
+        // if looks like base64 then decode
+        if(/^[A-Za-z0-9+/=]+$/.test(txt.trim())){
+          parsed = JSON.parse(decodeURIComponent(escape(atob(txt.trim()))));
+        } else parsed = JSON.parse(txt);
+        game = Object.assign({}, DEFAULT, parsed);
+        recalcCps();
+        renderStore();
+        renderAchievements();
+        updateUI();
+        log('Imported save.');
+      }catch(e){console.error(e);alert('Invalid import data');}
+    }
+
+    // Small visual feedback for big button
+    function flashBigButton(){
+      bigBtn.animate([
+        {transform: 'scale(1)'},
+        {transform: 'scale(1.06)'},
+        {transform: 'scale(1)'}
+      ],{duration:220,easing:'cubic-bezier(.2,.9,.2,1)'});
+    }
+
+    // Sound tick (simple beep via WebAudio)
+    function playTick(){
+      try{
+        if(!window.audioCtx) window.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const ctx = window.audioCtx;
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.type = 'sine'; o.frequency.value = 620;
+        g.gain.value = 0.03;
+        o.connect(g); g.connect(ctx.destination);
+        o.start();
+        setTimeout(()=>{o.stop();},60);
+      }catch(e){/* ignore */}
+    }
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', e=>{
+      if(e.code === 'Space') { e.preventDefault(); clickBake(); }
+      if(e.key.toLowerCase() === 's') saveGame();
+    });
+
+    // Wire up buttons
+    bigBtn.addEventListener('click', clickBake);
+    el('saveBtn').addEventListener('click', saveGame);
+    el('resetBtn').addEventListener('click', resetGame);
+    el('exportBtn').addEventListener('click', exportSave);
+    el('importBtn').addEventListener('click', importSave);
+
+    // auto tick every 1 second
+    setInterval(()=>{ tick(); }, 1000);
+
+    // autosave every 30s
+    setInterval(()=>{ saveGame(); }, 30000);
+
+    // boot
+    renderStore();
+    renderAchievements();
+    loadGame();
+    updateUI();
+
+    // expose to window for debugging
+    window.GAME = game;
+  </script>
+</body>
+</html>
