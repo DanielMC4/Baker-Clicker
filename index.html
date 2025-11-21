@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Full Clicker Game — Complete</title>
+  <title>Full Clicker Game — Patched (Skins & Upgrades)</title>
   <style>
     :root{
       --bg:#0f1724; --card:#0b1220; --accent:#ffb86b; --muted:#94a3b8; --glass: rgba(255,255,255,0.04);
@@ -124,7 +124,7 @@
       </div>
 
       <div class="footer">
-        <div>Version 2.0 — Skins</div>
+        <div>Version 2.1 — Skins & Upgrades</div>
         <div id="lastSaved" style="color:var(--muted);font-size:12px">Not saved</div>
       </div>
     </aside>
@@ -176,9 +176,15 @@
   </template>
 
   <script>
-    /* ===== Clicker game with skins support (finalized) ===== */
+    /* ===== Patch notes / summary =====
+       - Added 10 extra upgrades (mixture of one-time & producers)
+       - Producer price scaling retained (15% per buy)
+       - Skins system now uses randomized element skins and auto-unlocks IceCream on first click
+       - Mace skin unlocks after buying 3 producers
+       - Skins persist in save and apply to big button
+    */
 
-    // Utils
+    // Utilities
     const fmt = n => {
       if (n < 1000) return Math.floor(n).toString();
       const power = Math.floor(Math.log10(Math.abs(n)) / 3);
@@ -187,7 +193,7 @@
       return val.toFixed(val<10?2:1) + suffix;
     };
 
-    // Default state
+    // DEFAULT STATE
     const DEFAULT = {
       cookies: 0,
       clicks: 0,
@@ -204,13 +210,14 @@
       lastSaved: null
     };
 
-    const SAVE_KEY = 'full_clicker_skins_v2_final';
+    const SAVE_KEY = 'full_clicker_skins_v2_patch';
 
-    // Items
+    // ITEMS (base)
     const ITEMS = {
       clickPower: { id:'clickPower', name:'Stronger Hands', desc:'Increase cookies per click by +1', cost:50, effect:(g)=>{g.multiplier += 1}, type:'one-time' },
       clickPower2:{ id:'clickPower2', name:'Gloved Hands', desc:'+5 cookies per click', cost:500, effect:(g)=>{g.multiplier += 5}, type:'one-time' },
 
+      // existing producers
       baker: { id:'baker', name:'Baker', desc:'Auto-bakes cookies (1 cps). Repeatable', cost:15, baseCps:1, type:'producer' },
       plant: { id:'plant', name:'Cookie Plant', desc:'Tiny plant that produces cookies (5 cps)', cost:75, baseCps:5, type:'producer' },
       oven:  { id:'oven', name:'Oven', desc:'Better oven (10 cps)', cost:150, baseCps:10, type:'producer' },
@@ -218,7 +225,28 @@
       robot: { id:'robot', name:'BakeBot', desc:'Robotic baker (600 cps)', cost:8000, baseCps:600, type:'producer' }
     };
 
-    // Achievements
+    // NEW UPGRADES (10 extra) - mixed one-time + producer-level
+    const NEW_UPGRADES = {
+      goldenGloves: { id:'goldenGloves', name:'Golden Gloves', desc:'+15 click power', cost:2000, effect:(g)=>{g.multiplier += 15}, type:'one-time' },
+      titaniumFingers: { id:'titaniumFingers', name:'Titanium Fingers', desc:'+30 click power', cost:8000, effect:(g)=>{g.multiplier += 30}, type:'one-time' },
+      cookieHammer: { id:'cookieHammer', name:'Cookie Hammer', desc:'+2× click multiplier', cost:12000, effect:(g)=>{g.multiplier *= 2}, type:'one-time' },
+      steamOven: { id:'steamOven', name:'Steam Oven', desc:'+50% CPS', cost:7000, effect:(g)=>{ /* handled as flag */ g.upgrades['steamOven']=true }, type:'one-time' },
+      quantumWhisk: { id:'quantumWhisk', name:'Quantum Whisk', desc:'+150 click power', cost:25000, effect:(g)=>{g.multiplier += 150}, type:'one-time' },
+      solarPanels: { id:'solarPanels', name:'Solar Bakery Panels', desc:'+3× CPS', cost:40000, effect:(g)=>{ g.upgrades['solarPanels']=true }, type:'one-time' },
+      galacticCookware: { id:'galacticCookware', name:'Galactic Cookware', desc:'+10× CPS', cost:120000, effect:(g)=>{ g.upgrades['galacticCookware']=true }, type:'one-time' }
+    };
+
+    // NEW PRODUCERS (3 big ones)
+    const NEW_PRODUCERS = {
+      drone: { id:'drone', name:'Drone Baker', desc:'High-speed drone (2000 cps)', cost:2000, baseCps:2000, type:'producer' },
+      galaxy: { id:'galaxy', name:'Galaxy Factory', desc:'Massive factory (20000 cps)', cost:20000, baseCps:20000, type:'producer' },
+      portal: { id:'portal', name:'Portal Oven', desc:'Otherworldly oven (100000 cps)', cost:100000, baseCps:100000, type:'producer' }
+    };
+
+    // Combine all items
+    Object.assign(ITEMS, NEW_UPGRADES, NEW_PRODUCERS);
+
+    // Achievements (unchanged base, kept earlier)
     const ACH = [
       {id:'firstClick', name:'First Click', desc:'Make your first click', cond:g=>g.clicks >= 1, reward:()=>{}},
       {id:'10Clicks', name:'10 Clicks', desc:'Click 10 times', cond:g=>g.clicks >= 10, reward:()=>{}},
@@ -232,7 +260,8 @@
       {id:'skinCollector', name:'Skin Collector', desc:'Own 5 skins', cond:g=>g.ownedSkins.length >= 5, reward:()=>{}}
     ];
 
-    // Game state
+
+    // GAME STATE
     let game = JSON.parse(JSON.stringify(DEFAULT));
 
     // DOM refs
@@ -249,14 +278,14 @@
     const lastSavedEl = el('lastSaved');
     const skinList = el('skinList');
 
-    // Create UI nodes
+    // Create item nodes
     function createUpgradeNode(item){
       const tpl = document.getElementById('upgradeTemplate');
       const node = tpl.content.firstElementChild.cloneNode(true);
       node.dataset.id = item.id;
       node.querySelector('.name').textContent = item.name;
       node.querySelector('.desc').textContent = item.desc;
-      node.querySelector('.cost').textContent = item.cost;
+      node.querySelector('.cost').textContent = fmt(item.cost);
       const btn = node.querySelector('.buyBtn');
       btn.addEventListener('click', ()=>buyItem(item));
       return node;
@@ -270,18 +299,22 @@
       while(logEl.children.length > 500) logEl.removeChild(logEl.lastChild);
     }
 
-    // Core actions
+    // Click action
     function clickBake(){
       const perClick = 1 * game.multiplier;
       game.cookies += perClick;
       game.clicks += 1;
+      // On first click: unlock a special Ice Cream skin and equip it
+      if(game.clicks === 1){
+        if(game.skins['icecream']){ game.skins['icecream'].owned = true; if(!game.ownedSkins.includes('icecream')) game.ownedSkins.push('icecream'); game.selectedSkin = 'icecream'; log('Unlocked Ice Cream skin for first click!'); }
+      }
       flashBigButton();
       checkAchievements();
       updateUI();
       playTick();
     }
 
-    // Purchasing
+    // Buy logic
     function buyItem(item){
       if(item.type === 'one-time'){
         if(game.upgrades[item.id]) return log('Already purchased.');
@@ -297,20 +330,31 @@
         game.producers[item.id] = (game.producers[item.id] || 0) + 1;
         const next = Math.ceil(currentCost * 1.15);
         game.producerCosts[item.id] = next;
-        log(`Bought ${item.name} (x${game.producers[item.id]})`);
+        log(`Bought ${item.name} (x${game.producers[item.id]}) — paid ${fmt(currentCost)}`);
+
+        // If total producers reached 3 and Mace not owned, unlock Mace skin
+        const totalProducers = Object.values(game.producers).reduce((s,n)=>s+(n||0),0);
+        if(totalProducers >= 3 && game.skins['mace'] && !game.skins['mace'].owned){
+          game.skins['mace'].owned = true; if(!game.ownedSkins.includes('mace')) game.ownedSkins.push('mace'); log('Unlocked Mace skin for buying 3 producers!');
+        }
       }
+
       recalcCps();
       checkAchievements();
       updateUI();
     }
 
-    // Calculate CPS
+    // Recalc CPS
     function recalcCps(){
       let total = 0;
       Object.entries(game.producers).forEach(([id,count])=>{
         const it = ITEMS[id];
         if(it && it.baseCps) total += it.baseCps * count;
       });
+      // apply upgrades that affect CPS
+      if(game.upgrades['steamOven']) total = Math.floor(total * 1.5);
+      if(game.upgrades['solarPanels']) total = Math.floor(total * 3);
+      if(game.upgrades['galacticCookware']) total = Math.floor(total * 10);
       game.cps = Math.floor(total);
     }
 
@@ -348,7 +392,7 @@
       toast.style.boxShadow = '0 10px 30px rgba(0,0,0,0.5)';
       toast.style.zIndex = 9999;
       document.body.appendChild(toast);
-      setTimeout(()=>{toast.style.opacity=0;toast.style.transform='translateX(-50%) translateY(20px)';},1800);
+      setTimeout(()=>{toast.style.opacity=0;toast.style.transform='translateX(-50%) translateY(20px)';},2000);
       setTimeout(()=>toast.remove(),2600);
     }
 
@@ -362,7 +406,7 @@
       });
     }
 
-    // UI updates
+    // UI rendering
     function renderStore(){
       storeWrap.innerHTML = '';
       upgradesWrap.innerHTML = '';
@@ -385,8 +429,8 @@
         if(!item) return;
         let cost = item.cost;
         if(item.type === 'producer'){
-          const stCost = game.producerCosts[id] || item.cost;
-          cost = stCost;
+          const st = game.producerCosts[id] || item.cost;
+          cost = st;
         }
         const affordable = game.cookies >= cost;
         node.querySelector('.cost').textContent = fmt(cost);
@@ -433,7 +477,6 @@
             game.producerCosts[it.id] = game.producerCosts[it.id] || it.cost;
           }
         });
-        // ensure skins structure
         game.skins = game.skins || {};
         game.ownedSkins = game.ownedSkins || [];
         recalcCps();
@@ -483,68 +526,96 @@
       }catch(e){console.error(e);alert('Invalid import data');}
     }
 
-    // Visual feedback
-    function flashBigButton(){
-      bigBtn.animate([
-        {transform: 'scale(1)'},
-        {transform: 'scale(1.06)'},
-        {transform: 'scale(1)'}
-      ],{duration:220,easing:'cubic-bezier(.2,.9,.2,1)'});
+    // Skins system: random elements and special ones
+    const ELEMENTS = ['Fire','Ice','Water','Air','Crystal','Shadow','Metal','Light','Mist','Void'];
+
+    function genSkinSVG(name){
+      // simple colorful SVG based on name hash
+      const hash = [...name].reduce((s,c)=>s + c.charCodeAt(0), 0);
+      const color1 = '#' + ((hash * 9301 + 49297) % 16777215).toString(16).padStart(6,'0');
+      const color2 = '#' + ((hash * 23333 + 12345) % 16777215).toString(16).padStart(6,'0');
+      const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='512' height='512'><defs><linearGradient id='g' x1='0' x2='1'><stop offset='0' stop-color='${color1}'/><stop offset='1' stop-color='${color2}'/></linearGradient></defs><rect width='100%' height='100%' fill='url(#g)'/><text x='50%' y='54%' dominant-baseline='middle' text-anchor='middle' fill='rgba(255,255,255,0.9)' font-weight='700' font-size='40'>${name}</text></svg>`;
+      return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
     }
-
-    function playTick(){
-      try{
-        if(!window.audioCtx) window.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        const ctx = window.audioCtx;
-        const o = ctx.createOscillator();
-        const g = ctx.createGain();
-        o.type = 'sine'; o.frequency.value = 620;
-        g.gain.value = 0.02;
-        o.connect(g); g.connect(ctx.destination);
-        o.start();
-        setTimeout(()=>{o.stop();},50);
-      }catch(e){/* ignore */}
-    }
-
-    // Keyboard
-    document.addEventListener('keydown', e=>{
-      if(e.code === 'Space') { e.preventDefault(); clickBake(); }
-      if(e.key.toLowerCase() === 's') saveGame();
-    });
-
-    // Wire up buttons
-    bigBtn.addEventListener('click', clickBake);
-    el('saveBtn').addEventListener('click', saveGame);
-    el('resetBtn').addEventListener('click', resetGame);
-    el('exportBtn').addEventListener('click', exportSave);
-    el('importBtn').addEventListener('click', importSave);
-    el('skinsBtn').addEventListener('click', ()=>{ openSkinsModal(); });
-    el('openSkinsShopBtn').addEventListener('click', ()=>{ openSkinsModal(); });
-
-    // Skins system
-    const DEFAULT_SHOP_SKINS = [
-      {id:'sprinkles', name:'Sprinkles', price:250},
-      {id:'choco', name:'Choco Drip', price:800},
-      {id:'neon', name:'Neon Glow', price:2500},
-      {id:'retro', name:'Retro Plaque', price:8000}
-    ];
 
     function ensureSkins(){
       game.skins = game.skins || {};
-      DEFAULT_SHOP_SKINS.forEach(s => { if(!game.skins[s.id]){ game.skins[s.id] = { id:s.id, name:s.name, dataUri: genPatternData(s.name), price: s.price, owned:false }; }});
-      // default skin
-      if(!game.skins.default) game.skins.default = { id:'default', name:'Default', dataUri:null, price:0, owned:true };
-      // populate ownedSkins array
+      // built-in random element skins
+      ELEMENTS.forEach((elName, idx)=>{
+        const id = elName.toLowerCase();
+        if(!game.skins[id]){
+          game.skins[id] = { id, name: elName, dataUri: genSkinSVG(elName), price: 200 + idx*250, owned:false };
+        }
+      });
+      // special ones
+      if(!game.skins['icecream']) game.skins['icecream'] = { id:'icecream', name:'Ice Cream', dataUri: genSkinSVG('Ice Cream'), price:0, owned:false };
+      if(!game.skins['mace']) game.skins['mace'] = { id:'mace', name:'Mace', dataUri: genSkinSVG('Mace'), price:0, owned:false };
+      // default
+      if(!game.skins['default']) game.skins['default'] = { id:'default', name:'Default', dataUri:null, price:0, owned:true };
+
       game.ownedSkins = game.ownedSkins || [];
       Object.values(game.skins).forEach(s=>{ if(s.owned && !game.ownedSkins.includes(s.id)) game.ownedSkins.push(s.id); });
       if(!game.selectedSkin && game.ownedSkins.length>0) game.selectedSkin = game.ownedSkins[0];
     }
 
-    function genPatternData(text){
-      const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='512' height='512'><rect width='100%' height='100%' fill='#'+Math.floor(Math.random()*16777215).toString(16)/></svg>`;
+    function placeholderSkinData(id){
+      const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='512' height='512'><rect width='100%' height='100%' fill='#2b2b2b'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' fill='#fff' font-size='28'>${id}</text></svg>`;
       return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
     }
 
+    function renderOwnedSkins(){
+      skinList.innerHTML = '';
+      if(game.ownedSkins.length === 0){ skinList.innerHTML = '<div class="muted">No skins owned — open the Skins Shop to buy or upload.</div>'; return; }
+      game.ownedSkins.forEach(id => {
+        const s = game.skins[id];
+        if(!s) return;
+        const d = document.createElement('div'); d.className='upgrade'; d.style.alignItems='center';
+        const thumb = document.createElement('div'); thumb.className='skin-thumb'; const img = document.createElement('img'); img.src = s.dataUri || placeholderSkinData(id); thumb.appendChild(img);
+        const info = document.createElement('div'); info.style.flex='1'; info.innerHTML = `<div class='name'>${s.name}</div><small class='muted'>ID: ${id}</small>`;
+        const actions = document.createElement('div');
+        const equipBtn = document.createElement('button'); equipBtn.className='ghost-btn'; equipBtn.textContent = (game.selectedSkin === id) ? 'Equipped' : 'Equip'; equipBtn.addEventListener('click', ()=>{ equipSkin(id); updateUI(); });
+        const delBtn = document.createElement('button'); delBtn.className='ghost-btn'; delBtn.textContent='Delete'; delBtn.addEventListener('click', ()=>{ if(confirm('Delete this owned skin?')){ removeSkin(id); updateUI(); } });
+        actions.appendChild(equipBtn); actions.appendChild(delBtn);
+        d.appendChild(thumb); d.appendChild(info); d.appendChild(actions);
+        skinList.appendChild(d);
+      });
+
+      applySelectedSkinToButton();
+    }
+
+    function equipSkin(id){
+      if(!game.ownedSkins.includes(id)) return;
+      game.selectedSkin = id;
+      log(`Equipped skin: ${game.skins[id].name}`);
+      applySelectedSkinToButton();
+      saveGame();
+    }
+
+    function removeSkin(id){
+      const idx = game.ownedSkins.indexOf(id);
+      if(idx >= 0) game.ownedSkins.splice(idx,1);
+      if(game.skins[id]){
+        if(id.startsWith('custom_')) delete game.skins[id]; else game.skins[id].owned = false;
+      }
+      if(game.selectedSkin === id) game.selectedSkin = null;
+      log(`Removed skin: ${id}`);
+      saveGame();
+      renderOwnedSkins();
+    }
+
+    function applySelectedSkinToButton(){
+      const existing = bigBtn.querySelector('img.skin-img');
+      if(existing) existing.remove();
+      if(game.selectedSkin && game.skins[game.selectedSkin]){
+        const data = game.skins[game.selectedSkin].dataUri || placeholderSkinData(game.selectedSkin);
+        const img = document.createElement('img'); img.className = 'skin-img'; img.src = data; bigBtn.prepend(img);
+        bigLabel.style.display = 'none';
+      } else {
+        bigLabel.style.display = 'block';
+      }
+    }
+
+    // Skins modal
     function openSkinsModal(){
       const tpl = document.getElementById('skinsModalTpl');
       const node = tpl.content.firstElementChild.cloneNode(true);
@@ -625,73 +696,36 @@
       document.getElementById('closeSkinsModal').addEventListener('click', ()=>{ document.querySelectorAll('.modal-backdrop').forEach(n=>n.remove()); });
     }
 
-    function placeholderSkinData(id){
-      const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='512' height='512'><rect width='100%' height='100%' fill='#2b2b2b'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' fill='#fff' font-size='28'>${id}</text></svg>`;
-      return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+    // Small helpers
+    function genPatternData(text){ return genSkinSVG(text); }
+
+    // Visual & audio
+    function flashBigButton(){
+      bigBtn.animate([
+        {transform: 'scale(1)'},
+        {transform: 'scale(1.06)'},
+        {transform: 'scale(1)'}
+      ],{duration:220,easing:'cubic-bezier(.2,.9,.2,1)'});
     }
+    function playTick(){ try{ if(!window.audioCtx) window.audioCtx = new (window.AudioContext || window.webkitAudioContext)(); const ctx = window.audioCtx; const o = ctx.createOscillator(); const g = ctx.createGain(); o.type = 'sine'; o.frequency.value = 620; g.gain.value = 0.02; o.connect(g); g.connect(ctx.destination); o.start(); setTimeout(()=>{o.stop();},50); }catch(e){} }
 
-    function renderOwnedSkins(){
-      skinList.innerHTML = '';
-      if(game.ownedSkins.length === 0){ skinList.innerHTML = '<div class="muted">No skins owned — open the Skins Shop to buy or upload.</div>'; return; }
-      game.ownedSkins.forEach(id => {
-        const s = game.skins[id];
-        if(!s) return;
-        const d = document.createElement('div'); d.className='upgrade'; d.style.alignItems='center';
-        const thumb = document.createElement('div'); thumb.className='skin-thumb'; const img = document.createElement('img'); img.src = s.dataUri || placeholderSkinData(id); thumb.appendChild(img);
-        const info = document.createElement('div'); info.style.flex='1'; info.innerHTML = `<div class='name'>${s.name}</div><small class='muted'>ID: ${id}</small>`;
-        const actions = document.createElement('div');
-        const equipBtn = document.createElement('button'); equipBtn.className='ghost-btn'; equipBtn.textContent = (game.selectedSkin === id) ? 'Equipped' : 'Equip'; equipBtn.addEventListener('click', ()=>{ equipSkin(id); updateUI(); });
-        const delBtn = document.createElement('button'); delBtn.className='ghost-btn'; delBtn.textContent='Delete'; delBtn.addEventListener('click', ()=>{ if(confirm('Delete this owned skin?')){ removeSkin(id); updateUI(); } });
-        actions.appendChild(equipBtn); actions.appendChild(delBtn);
-        d.appendChild(thumb); d.appendChild(info); d.appendChild(actions);
-        skinList.appendChild(d);
-      });
+    // Keyboard
+    document.addEventListener('keydown', e=>{ if(e.code === 'Space') { e.preventDefault(); clickBake(); } if(e.key.toLowerCase() === 's') saveGame(); });
 
-      applySelectedSkinToButton();
-    }
+    // Wire up main buttons
+    bigBtn.addEventListener('click', clickBake);
+    el('saveBtn').addEventListener('click', saveGame);
+    el('resetBtn').addEventListener('click', resetGame);
+    el('exportBtn').addEventListener('click', exportSave);
+    el('importBtn').addEventListener('click', importSave);
+    el('skinsBtn').addEventListener('click', openSkinsModal);
+    el('openSkinsShopBtn').addEventListener('click', openSkinsModal);
 
-    function equipSkin(id){
-      if(!game.ownedSkins.includes(id)) return;
-      game.selectedSkin = id;
-      log(`Equipped skin: ${game.skins[id].name}`);
-      applySelectedSkinToButton();
-      saveGame();
-    }
-
-    function removeSkin(id){
-      const idx = game.ownedSkins.indexOf(id);
-      if(idx >= 0) game.ownedSkins.splice(idx,1);
-      if(game.skins[id]){
-        // if custom, delete entirely; if shop skin, mark as not owned
-        if(id.startsWith('custom_')) delete game.skins[id]; else game.skins[id].owned = false;
-      }
-      if(game.selectedSkin === id) game.selectedSkin = null;
-      log(`Removed skin: ${id}`);
-      saveGame();
-      renderOwnedSkins();
-    }
-
-    function applySelectedSkinToButton(){
-      const existing = bigBtn.querySelector('img.skin-img');
-      if(existing) existing.remove();
-      if(game.selectedSkin && game.skins[game.selectedSkin]){
-        const data = game.skins[game.selectedSkin].dataUri || placeholderSkinData(game.selectedSkin);
-        const img = document.createElement('img'); img.className = 'skin-img'; img.src = data; bigBtn.prepend(img);
-        bigLabel.style.display = 'none';
-      } else {
-        bigLabel.style.display = 'block';
-      }
-    }
-
-    function populateDefaultSkins(){
-      ensureSkins();
-      Object.values(game.skins).forEach(s=>{ if(s.price && !s.dataUri) s.dataUri = genPatternData(s.name); });
-    }
-
-    // Init / boot
+    // Boot
     function boot(){
+      // ensure producers have defaults
       Object.values(ITEMS).forEach(it=>{ if(it.type==='producer'){ game.producers[it.id] = game.producers[it.id] || 0; game.producerCosts[it.id] = game.producerCosts[it.id] || it.cost; }});
-      populateDefaultSkins();
+      ensureSkins();
       renderStore();
       renderAchievements();
       loadGame();
