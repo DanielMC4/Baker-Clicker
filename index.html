@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Full Clicker Game</title>
+  <title>Full Clicker Game — Complete</title>
   <style>
     :root{
       --bg:#0f1724; --card:#0b1220; --accent:#ffb86b; --muted:#94a3b8; --glass: rgba(255,255,255,0.04);
@@ -12,14 +12,15 @@
     }
     *{box-sizing:border-box}
     html,body{height:100%;margin:0;background:linear-gradient(180deg,#071022 0%, #07182a 100%);color:#e6eef8}
-    .wrap{max-width:1100px;margin:28px auto;padding:20px;display:grid;grid-template-columns: 1fr 380px;gap:20px}
+    .wrap{max-width:1200px;margin:28px auto;padding:20px;display:grid;grid-template-columns: 1fr 420px;gap:20px}
     .panel{background:linear-gradient(180deg,var(--card), #07101a);border-radius:14px;padding:18px;box-shadow:0 8px 30px rgba(2,6,23,0.6);border:1px solid rgba(255,255,255,0.03)}
 
     /* left big area */
-    .game-area{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;min-height:520px}
-    .big-btn{width:300px;height:300px;border-radius:999px;background:radial-gradient(circle at 30% 20%, #ffd9b2 0%, #ffb86b 40%, #ff8f3c 100%);display:flex;align-items:center;justify-content:center;cursor:pointer;user-select:none;box-shadow:0 18px 50px rgba(255,150,50,0.14), inset 0 -8px 20px rgba(0,0,0,0.12);transition:transform .08s ease}
+    .game-area{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;min-height:640px}
+    .big-btn{width:320px;height:320px;border-radius:999px;background:radial-gradient(circle at 30% 20%, #ffd9b2 0%, #ffb86b 40%, #ff8f3c 100%);display:flex;align-items:center;justify-content:center;cursor:pointer;user-select:none;box-shadow:0 18px 60px rgba(255,150,50,0.14), inset 0 -8px 24px rgba(0,0,0,0.12);transition:transform .08s ease, box-shadow .08s ease, background 180ms ease}
     .big-btn:active{transform:scale(.96)}
-    .big-btn .label{font-size:28px;color:#1b1b1b;font-weight:700;text-shadow:0 2px 0 rgba(255,255,255,0.2)}
+    .big-btn .label{font-size:30px;color:#1b1b1b;font-weight:800;text-shadow:0 2px 0 rgba(255,255,255,0.2)}
+    .big-btn img.skin-img{width:100%;height:100%;object-fit:cover;border-radius:999px;mix-blend-mode:normal}
 
     .hud{display:flex;gap:12px;align-items:center}
     .stat{background:var(--glass);padding:10px 14px;border-radius:10px;color:var(--muted);font-weight:600}
@@ -29,18 +30,18 @@
     .sidebar{display:flex;flex-direction:column;gap:12px}
     .section-title{font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
 
-    .upgrades{display:grid;grid-template-columns:1fr;gap:10px;max-height:360px;overflow:auto;padding-right:6px}
+    .upgrades{display:grid;grid-template-columns:1fr;gap:10px;max-height:260px;overflow:auto;padding-right:6px}
     .upgrade{display:flex;align-items:center;gap:12px;padding:10px;border-radius:10px;background:linear-gradient(180deg,var(--glass-2),transparent);border:1px solid rgba(255,255,255,0.02)}
     .upgrade .info{flex:1}
     .upgrade .name{font-weight:700}
     .upgrade small{color:var(--muted)}
     .upgrade button{background:linear-gradient(180deg,#1b2430,#12202b);border-radius:8px;padding:8px 10px;border:1px solid rgba(255,255,255,0.04);color:var(--accent);cursor:pointer}
-    .upgrade.locked{opacity:.5}
+    .upgrade.locked{opacity:.45}
 
     .controls{display:flex;gap:8px}
     .ghost-btn{background:transparent;border:1px dashed rgba(255,255,255,0.04);padding:8px 10px;border-radius:8px;color:var(--muted);cursor:pointer}
 
-    .log{background:linear-gradient(180deg,#06101a,transparent);padding:12px;border-radius:10px;min-height:80px;max-height:120px;overflow:auto;font-size:13px;color:var(--muted)}
+    .log{background:linear-gradient(180deg,#06101a,transparent);padding:12px;border-radius:10px;min-height:160px;max-height:220px;overflow:auto;font-size:13px;color:var(--muted)}
 
     .footer{display:flex;justify-content:space-between;align-items:center;margin-top:10px;color:var(--muted);font-size:13px}
 
@@ -48,8 +49,24 @@
     .ach-grid{display:flex;gap:8px;flex-wrap:wrap}
     .ach{padding:8px 10px;border-radius:8px;background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent);font-size:13px}
 
+    /* skins */
+    .skin-row{display:flex;gap:10px;align-items:center}
+    .skin-thumb{width:56px;height:56px;border-radius:8px;overflow:hidden;border:1px solid rgba(255,255,255,0.04)}
+    .skin-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+    .skin-list{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;max-height:220px;overflow:auto;padding-right:6px}
+
+    .skins-grid{display:flex;flex-wrap:wrap;gap:8px}
+    .skin-card{width:84px;height:84px;border-radius:10px;background:linear-gradient(180deg,#071827,transparent);display:flex;align-items:center;justify-content:center;overflow:hidden;border:1px solid rgba(255,255,255,0.03);position:relative}
+    .skin-card img{max-width:100%;max-height:100%;display:block}
+    .skin-meta{position:absolute;left:6px;bottom:6px;background:rgba(0,0,0,0.45);padding:4px 6px;border-radius:6px;font-size:11px}
+    .skin-actions{display:flex;gap:6px;margin-top:8px}
+
+    /* modal */
+    .modal-backdrop{position:fixed;left:0;top:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:999}
+    .modal{background:var(--card);padding:18px;border-radius:12px;width:720px;max-width:95%;box-shadow:0 20px 60px rgba(2,6,23,0.7)}
+
     /* responsive */
-    @media(max-width:980px){.wrap{grid-template-columns:1fr;padding:12px}.big-btn{width:250px;height:250px}}
+    @media(max-width:1100px){.wrap{grid-template-columns:1fr;padding:12px}.big-btn{width:260px;height:260px}}
   </style>
 </head>
 <body>
@@ -65,13 +82,14 @@
         <div class="label" id="bigLabel">Bake!</div>
       </div>
 
-      <div style="width:100%;max-width:720px;text-align:center;color:var(--muted);">
+      <div style="width:100%;max-width:880px;text-align:center;color:var(--muted);">
         <div style="display:flex;justify-content:center;gap:8px;align-items:center;margin-bottom:8px">
           <div class="controls">
             <button class="ghost-btn" id="saveBtn">Save</button>
             <button class="ghost-btn" id="exportBtn">Export</button>
             <button class="ghost-btn" id="importBtn">Import</button>
             <button class="ghost-btn" id="resetBtn">Reset</button>
+            <button class="ghost-btn" id="skinsBtn">Skins</button>
           </div>
         </div>
         <div class="log" id="log" aria-live="polite">Welcome! Click the <strong>Bake!</strong> button to earn cookies.</div>
@@ -90,12 +108,23 @@
       </div>
 
       <div>
+        <div class="section-title">Skins</div>
+        <div class="skin-row" style="justify-content:space-between;align-items:center">
+          <div class="muted">Owned skins</div>
+          <div>
+            <button class="ghost-btn" id="openSkinsShopBtn">Buy Skins</button>
+          </div>
+        </div>
+        <div class="skin-list" id="skinList"></div>
+      </div>
+
+      <div>
         <div class="section-title">Achievements</div>
         <div class="ach-grid" id="achievements"></div>
       </div>
 
       <div class="footer">
-        <div>Version 1.0</div>
+        <div>Version 2.0 — Skins</div>
         <div id="lastSaved" style="color:var(--muted);font-size:12px">Not saved</div>
       </div>
     </aside>
@@ -114,60 +143,96 @@
     </div>
   </template>
 
+  <template id="skinsModalTpl">
+    <div class="modal-backdrop">
+      <div class="modal" role="dialog" aria-modal="true">
+        <h3>Skins Shop</h3>
+        <p class="muted">Upload custom skins (images) or buy crafted skins from the shop. Uploaded skins stay in localStorage as base64 data.</p>
+
+        <div style="display:flex;gap:12px;margin-top:12px">
+          <div style="flex:1">
+            <div style="margin-bottom:8px"><strong>Your balance:</strong> <span id="shopBalance">0</span> cookies</div>
+            <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+              <input type="file" id="uploadSkinInput" accept="image/*">
+              <button class="ghost-btn" id="uploadSkinBtn">Upload Skin</button>
+            </div>
+            <div style="max-height:240px;overflow:auto;padding-right:6px" id="ownedSkinsPanel"></div>
+          </div>
+
+          <div style="width:320px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+              <div><strong>Shop</strong></div>
+              <div class="muted">Click buy to purchase a skin</div>
+            </div>
+            <div id="shopSkins" style="max-height:420px;overflow:auto;padding-right:6px"></div>
+          </div>
+        </div>
+
+        <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px">
+          <button class="ghost-btn" id="closeSkinsModal">Close</button>
+        </div>
+      </div>
+    </div>
+  </template>
+
   <script>
-    /* ===== Simple clicker game engine =====
-       Features:
-         - Manual clicks (cookies)
-         - Upgrade store (one-time purchases and repeatable auto-producers)
-         - Multipliers
-         - Achievements
-         - Save/load (localStorage)
-         - Export/Import JSON
-         - Keyboard shortcuts: Space to click, S to save
-    */
+    /* ===== Clicker game with skins support (finalized) ===== */
 
     // Utils
     const fmt = n => {
       if (n < 1000) return Math.floor(n).toString();
       const power = Math.floor(Math.log10(Math.abs(n)) / 3);
-      const suffix = ['K','M','B','T','Qa','Qi'][power-1] || ('e'+(power*3));
+      const suffix = ['K','M','B','T','Qa','Qi','Sx','Sp'][power-1] || ('e'+(power*3));
       const val = n / Math.pow(1000, power);
       return val.toFixed(val<10?2:1) + suffix;
     };
 
-    // Initial game state
+    // Default state
     const DEFAULT = {
       cookies: 0,
       clicks: 0,
       cps: 0,
       multiplier: 1,
-      upgrades: {}, // bought one-time upgrades
-      producers: {}, // repeatable producers {id:count}
+      upgrades: {},
+      producers: {},
+      producerCosts: {},
       unlocked: {},
       achievements: {},
+      skins: {},
+      ownedSkins: [],
+      selectedSkin: null,
       lastSaved: null
     };
 
-    const SAVE_KEY = 'full_clicker_v1';
+    const SAVE_KEY = 'full_clicker_skins_v2_final';
 
-    // Items definition (store & upgrades)
+    // Items
     const ITEMS = {
       clickPower: { id:'clickPower', name:'Stronger Hands', desc:'Increase cookies per click by +1', cost:50, effect:(g)=>{g.multiplier += 1}, type:'one-time' },
       clickPower2:{ id:'clickPower2', name:'Gloved Hands', desc:'+5 cookies per click', cost:500, effect:(g)=>{g.multiplier += 5}, type:'one-time' },
 
       baker: { id:'baker', name:'Baker', desc:'Auto-bakes cookies (1 cps). Repeatable', cost:15, baseCps:1, type:'producer' },
+      plant: { id:'plant', name:'Cookie Plant', desc:'Tiny plant that produces cookies (5 cps)', cost:75, baseCps:5, type:'producer' },
       oven:  { id:'oven', name:'Oven', desc:'Better oven (10 cps)', cost:150, baseCps:10, type:'producer' },
-      factory:{ id:'factory', name:'Factory', desc:'Automates production (100 cps)', cost:1200, baseCps:100, type:'producer' }
+      factory:{ id:'factory', name:'Factory', desc:'Automates production (100 cps)', cost:1200, baseCps:100, type:'producer' },
+      robot: { id:'robot', name:'BakeBot', desc:'Robotic baker (600 cps)', cost:8000, baseCps:600, type:'producer' }
     };
 
     // Achievements
     const ACH = [
       {id:'firstClick', name:'First Click', desc:'Make your first click', cond:g=>g.clicks >= 1, reward:()=>{}},
+      {id:'10Clicks', name:'10 Clicks', desc:'Click 10 times', cond:g=>g.clicks >= 10, reward:()=>{}},
       {id:'100Clicks', name:'100 Clicks', desc:'Click 100 times', cond:g=>g.clicks >= 100, reward:()=>{}},
+      {id:'1kCookies', name:'Baker Starter', desc:'Have 1,000 cookies total', cond:g=>g.cookies >= 1000, reward:()=>{}},
       {id:'10kCookies', name:'10k Cookies', desc:'Have 10,000 cookies total', cond:g=>g.cookies >= 10000, reward:()=>{}},
+      {id:'100kCookies', name:'Cookie Hoarder', desc:'Have 100,000 cookies', cond:g=>g.cookies >= 100000, reward:()=>{}},
+      {id:'firstProducer', name:'First Hire', desc:'Buy your first producer', cond:g=> Object.values(g.producers).some(p=>p && p>0), reward:()=>{}},
+      {id:'collector', name:'Collector', desc:'Own 10 producers total', cond:g=> Object.values(g.producers).reduce((s,p)=>s + (p||0),0) >= 10, reward:()=>{}},
+      {id:'skinOwner', name:'Skin Enthusiast', desc:'Own at least 1 skin', cond:g=>g.ownedSkins.length >= 1, reward:()=>{}},
+      {id:'skinCollector', name:'Skin Collector', desc:'Own 5 skins', cond:g=>g.ownedSkins.length >= 5, reward:()=>{}}
     ];
 
-    // Game engine
+    // Game state
     let game = JSON.parse(JSON.stringify(DEFAULT));
 
     // DOM refs
@@ -182,8 +247,9 @@
     const logEl = el('log');
     const achWrap = el('achievements');
     const lastSavedEl = el('lastSaved');
+    const skinList = el('skinList');
 
-    // initialize UI
+    // Create UI nodes
     function createUpgradeNode(item){
       const tpl = document.getElementById('upgradeTemplate');
       const node = tpl.content.firstElementChild.cloneNode(true);
@@ -196,24 +262,12 @@
       return node;
     }
 
-    function renderStore(){
-      storeWrap.innerHTML = '';
-      upgradesWrap.innerHTML = '';
-      Object.values(ITEMS).forEach(item =>{
-        const node = createUpgradeNode(item);
-        if(item.type === 'producer') storeWrap.appendChild(node);
-        else upgradesWrap.appendChild(node);
-      });
-      updateUI();
-    }
-
     function log(msg){
       const time = new Date().toLocaleTimeString();
       const line = document.createElement('div');
       line.textContent = `[${time}] ${msg}`;
       logEl.prepend(line);
-      // keep at most 200 lines
-      while(logEl.children.length > 200) logEl.removeChild(logEl.lastChild);
+      while(logEl.children.length > 500) logEl.removeChild(logEl.lastChild);
     }
 
     // Core actions
@@ -227,7 +281,7 @@
       playTick();
     }
 
-    // Purchase
+    // Purchasing
     function buyItem(item){
       if(item.type === 'one-time'){
         if(game.upgrades[item.id]) return log('Already purchased.');
@@ -237,12 +291,16 @@
         if(item.effect) item.effect(game);
         log(`Purchased: ${item.name}`);
       } else if(item.type === 'producer'){
-        if(game.cookies < item.cost) return log('Not enough cookies.');
-        game.cookies -= item.cost;
+        const currentCost = game.producerCosts[item.id] || item.cost;
+        if(game.cookies < currentCost) return log('Not enough cookies.');
+        game.cookies -= currentCost;
         game.producers[item.id] = (game.producers[item.id] || 0) + 1;
+        const next = Math.ceil(currentCost * 1.15);
+        game.producerCosts[item.id] = next;
         log(`Bought ${item.name} (x${game.producers[item.id]})`);
       }
       recalcCps();
+      checkAchievements();
       updateUI();
     }
 
@@ -253,10 +311,10 @@
         const it = ITEMS[id];
         if(it && it.baseCps) total += it.baseCps * count;
       });
-      game.cps = total;
+      game.cps = Math.floor(total);
     }
 
-    // Tick (every second) to add cookies from producers
+    // Tick
     function tick(){
       if(game.cps > 0){
         game.cookies += game.cps;
@@ -265,7 +323,7 @@
       }
     }
 
-    // Achievements check
+    // Achievements
     function checkAchievements(){
       ACH.forEach(a =>{
         if(!game.achievements[a.id] && a.cond(game)){
@@ -278,7 +336,6 @@
 
     function announceAchievement(a){
       log(`Achievement: ${a.name} — ${a.desc}`);
-      // little toast animation
       const toast = document.createElement('div');
       toast.textContent = `🏆 ${a.name}`;
       toast.style.position = 'fixed';
@@ -306,30 +363,50 @@
     }
 
     // UI updates
+    function renderStore(){
+      storeWrap.innerHTML = '';
+      upgradesWrap.innerHTML = '';
+      Object.values(ITEMS).forEach(item =>{
+        const node = createUpgradeNode(item);
+        if(item.type === 'producer') storeWrap.appendChild(node);
+        else upgradesWrap.appendChild(node);
+      });
+      updateUI();
+    }
+
     function updateUI(){
       cookiesEl.textContent = fmt(game.cookies);
       cpsEl.textContent = fmt(game.cps);
       clicksEl.textContent = String(game.clicks);
 
-      // store button states
       document.querySelectorAll('.upgrade').forEach(node=>{
         const id = node.dataset.id;
         const item = ITEMS[id];
-        const cost = item.cost;
+        if(!item) return;
+        let cost = item.cost;
+        if(item.type === 'producer'){
+          const stCost = game.producerCosts[id] || item.cost;
+          cost = stCost;
+        }
         const affordable = game.cookies >= cost;
         node.querySelector('.cost').textContent = fmt(cost);
         const btn = node.querySelector('.buyBtn');
         btn.disabled = !affordable;
-        if(!affordable) btn.style.opacity = 0.6; else btn.style.opacity = 1;
+        btn.style.opacity = affordable ? 1 : 0.6;
 
         if(item.type === 'one-time'){
           if(game.upgrades[item.id]) { node.classList.add('locked'); node.querySelector('.buyBtn').textContent = 'Owned'; }
           else node.classList.remove('locked');
         } else {
           node.querySelector('.buyBtn').textContent = 'Buy';
+          if(!node.querySelector('.count')){
+            const c = document.createElement('div'); c.className = 'count'; c.style.fontSize='12px'; c.style.marginTop='6px'; node.querySelector('.info').appendChild(c);
+          }
+          node.querySelector('.count').textContent = `Owned: ${(game.producers[item.id]||0)}`;
         }
       });
 
+      renderOwnedSkins();
       lastSavedEl.textContent = game.lastSaved ? `Saved ${new Date(game.lastSaved).toLocaleString()}` : 'Not saved';
     }
 
@@ -346,13 +423,24 @@
     function loadGame(){
       try{
         const raw = localStorage.getItem(SAVE_KEY);
-        if(!raw) return; // no save
+        if(!raw) return;
         const parsed = JSON.parse(raw);
         game = Object.assign({}, DEFAULT, parsed);
+        // ensure producers and costs
+        Object.values(ITEMS).forEach(it=>{
+          if(it.type==='producer'){
+            game.producers[it.id] = game.producers[it.id] || 0;
+            game.producerCosts[it.id] = game.producerCosts[it.id] || it.cost;
+          }
+        });
+        // ensure skins structure
+        game.skins = game.skins || {};
+        game.ownedSkins = game.ownedSkins || [];
         recalcCps();
         renderStore();
         renderAchievements();
         updateUI();
+        applySelectedSkinToButton();
         log('Loaded save.');
       }catch(e){console.error(e);log('Load failed.');}
     }
@@ -372,7 +460,6 @@
     function exportSave(){
       const data = btoa(unescape(encodeURIComponent(JSON.stringify(game))));
       navigator.clipboard?.writeText(data).then(()=>log('Export copied to clipboard.'));
-      // also prompt for download
       const blob = new Blob([JSON.stringify(game, null, 2)], {type:'application/json'});
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a'); a.href = url; a.download = 'clicker_save.json'; a.click(); URL.revokeObjectURL(url);
@@ -383,11 +470,11 @@
       if(!txt) return;
       try{
         let parsed;
-        // if looks like base64 then decode
-        if(/^[A-Za-z0-9+/=]+$/.test(txt.trim())){
+        if(/^[A-Za-z0-9+/=\s]+$/.test(txt.trim())){
           parsed = JSON.parse(decodeURIComponent(escape(atob(txt.trim()))));
         } else parsed = JSON.parse(txt);
         game = Object.assign({}, DEFAULT, parsed);
+        Object.values(ITEMS).forEach(it=>{ if(it.type==='producer'){ game.producers[it.id] = game.producers[it.id] || 0; game.producerCosts[it.id] = game.producerCosts[it.id] || it.cost; }});
         recalcCps();
         renderStore();
         renderAchievements();
@@ -396,7 +483,7 @@
       }catch(e){console.error(e);alert('Invalid import data');}
     }
 
-    // Small visual feedback for big button
+    // Visual feedback
     function flashBigButton(){
       bigBtn.animate([
         {transform: 'scale(1)'},
@@ -405,7 +492,6 @@
       ],{duration:220,easing:'cubic-bezier(.2,.9,.2,1)'});
     }
 
-    // Sound tick (simple beep via WebAudio)
     function playTick(){
       try{
         if(!window.audioCtx) window.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -413,14 +499,14 @@
         const o = ctx.createOscillator();
         const g = ctx.createGain();
         o.type = 'sine'; o.frequency.value = 620;
-        g.gain.value = 0.03;
+        g.gain.value = 0.02;
         o.connect(g); g.connect(ctx.destination);
         o.start();
-        setTimeout(()=>{o.stop();},60);
+        setTimeout(()=>{o.stop();},50);
       }catch(e){/* ignore */}
     }
 
-    // Keyboard shortcuts
+    // Keyboard
     document.addEventListener('keydown', e=>{
       if(e.code === 'Space') { e.preventDefault(); clickBake(); }
       if(e.key.toLowerCase() === 's') saveGame();
@@ -432,21 +518,197 @@
     el('resetBtn').addEventListener('click', resetGame);
     el('exportBtn').addEventListener('click', exportSave);
     el('importBtn').addEventListener('click', importSave);
+    el('skinsBtn').addEventListener('click', ()=>{ openSkinsModal(); });
+    el('openSkinsShopBtn').addEventListener('click', ()=>{ openSkinsModal(); });
 
-    // auto tick every 1 second
-    setInterval(()=>{ tick(); }, 1000);
+    // Skins system
+    const DEFAULT_SHOP_SKINS = [
+      {id:'sprinkles', name:'Sprinkles', price:250},
+      {id:'choco', name:'Choco Drip', price:800},
+      {id:'neon', name:'Neon Glow', price:2500},
+      {id:'retro', name:'Retro Plaque', price:8000}
+    ];
 
-    // autosave every 30s
-    setInterval(()=>{ saveGame(); }, 30000);
+    function ensureSkins(){
+      game.skins = game.skins || {};
+      DEFAULT_SHOP_SKINS.forEach(s => { if(!game.skins[s.id]){ game.skins[s.id] = { id:s.id, name:s.name, dataUri: genPatternData(s.name), price: s.price, owned:false }; }});
+      // default skin
+      if(!game.skins.default) game.skins.default = { id:'default', name:'Default', dataUri:null, price:0, owned:true };
+      // populate ownedSkins array
+      game.ownedSkins = game.ownedSkins || [];
+      Object.values(game.skins).forEach(s=>{ if(s.owned && !game.ownedSkins.includes(s.id)) game.ownedSkins.push(s.id); });
+      if(!game.selectedSkin && game.ownedSkins.length>0) game.selectedSkin = game.ownedSkins[0];
+    }
 
-    // boot
-    renderStore();
-    renderAchievements();
-    loadGame();
-    updateUI();
+    function genPatternData(text){
+      const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='512' height='512'><rect width='100%' height='100%' fill='#'+Math.floor(Math.random()*16777215).toString(16)/></svg>`;
+      return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+    }
 
-    // expose to window for debugging
-    window.GAME = game;
+    function openSkinsModal(){
+      const tpl = document.getElementById('skinsModalTpl');
+      const node = tpl.content.firstElementChild.cloneNode(true);
+      document.body.appendChild(node);
+      const shopBalance = document.getElementById('shopBalance');
+      const ownedPanel = document.getElementById('ownedSkinsPanel');
+      const shopSkins = document.getElementById('shopSkins');
+
+      function renderOwned(){
+        ownedPanel.innerHTML = '';
+        if(game.ownedSkins.length === 0){ ownedPanel.innerHTML = '<div class="muted">You don\'t own any skins yet.</div>'; }
+        game.ownedSkins.forEach(id => {
+          const s = game.skins[id];
+          const d = document.createElement('div'); d.style.display='flex'; d.style.gap='8px'; d.style.marginBottom='8px'; d.style.alignItems='center';
+          const t = document.createElement('div'); t.style.width='64px'; t.style.height='64px'; t.style.borderRadius='8px'; t.style.overflow='hidden'; t.style.border='1px solid rgba(255,255,255,0.04)';
+          const img = document.createElement('img'); img.src = s.dataUri || placeholderSkinData(s.id); img.style.width='100%'; img.style.height='100%'; img.style.objectFit='cover';
+          t.appendChild(img);
+          const info = document.createElement('div'); info.style.flex='1'; info.innerHTML = `<div style="font-weight:700">${s.name}</div><div class="muted" style="font-size:12px">ID: ${s.id}</div>`;
+          const actions = document.createElement('div');
+          const equip = document.createElement('button'); equip.className='ghost-btn'; equip.textContent='Equip'; equip.addEventListener('click', ()=>{ equipSkin(s.id); renderOwned(); updateUI(); });
+          const remove = document.createElement('button'); remove.className='ghost-btn'; remove.textContent='Remove'; remove.addEventListener('click', ()=>{ if(confirm('Remove skin? This will permanently delete it from your owned list.')){ removeSkin(s.id); renderOwned(); updateUI(); }});
+          actions.appendChild(equip); actions.appendChild(remove);
+          d.appendChild(t); d.appendChild(info); d.appendChild(actions);
+          ownedPanel.appendChild(d);
+        });
+      }
+
+      function renderShop(){
+        shopSkins.innerHTML = '';
+        Object.values(game.skins).forEach(s => {
+          if(!s.price) return;
+          const r = document.createElement('div'); r.style.display='flex'; r.style.gap='8px'; r.style.marginBottom='8px'; r.style.alignItems='center';
+          const thumb = document.createElement('div'); thumb.style.width='64px'; thumb.style.height='64px'; thumb.style.borderRadius='8px'; thumb.style.overflow='hidden'; thumb.style.border='1px solid rgba(255,255,255,0.04)';
+          const img = document.createElement('img'); img.src = s.dataUri || placeholderSkinData(s.id); img.style.width='100%'; img.style.height='100%'; img.style.objectFit='cover';
+          thumb.appendChild(img);
+          const info = document.createElement('div'); info.style.flex='1'; info.innerHTML = `<div style="font-weight:700">${s.name}</div><div class="muted" style="font-size:12px">Price: ${fmt(s.price)} cookies</div>`;
+          const buyBtn = document.createElement('button'); buyBtn.className='buyBtn ghost-btn'; buyBtn.textContent = s.owned ? 'Owned' : 'Buy';
+          buyBtn.addEventListener('click', ()=>{
+            if(s.owned) { equipSkin(s.id); renderShop(); renderOwned(); return; }
+            if(game.cookies < s.price) return alert('Not enough cookies to buy this skin.');
+            if(confirm(`Buy skin ${s.name} for ${s.price} cookies?`)){
+              game.cookies -= s.price;
+              s.owned = true;
+              if(!game.ownedSkins.includes(s.id)) game.ownedSkins.push(s.id);
+              log(`Purchased skin: ${s.name}`);
+              renderShop(); renderOwned(); updateUI(); saveGame();
+            }
+          });
+          r.appendChild(thumb); r.appendChild(info); r.appendChild(buyBtn);
+          shopSkins.appendChild(r);
+        });
+      }
+
+      shopBalance.textContent = fmt(game.cookies);
+      renderOwned();
+      renderShop();
+
+      const uploadInput = document.getElementById('uploadSkinInput');
+      const uploadBtn = document.getElementById('uploadSkinBtn');
+      uploadBtn.addEventListener('click', ()=>{
+        const f = uploadInput.files && uploadInput.files[0];
+        if(!f) return alert('Choose an image file first.');
+        const reader = new FileReader();
+        reader.onload = function(ev){
+          const dataUri = ev.target.result;
+          const id = 'custom_' + Date.now();
+          game.skins[id] = { id, name: f.name.replace(/\.[^/.]+$/, ''), dataUri, price: 0, owned:true };
+          if(!game.ownedSkins.includes(id)) game.ownedSkins.push(id);
+          log(`Uploaded skin: ${f.name}`);
+          renderOwned();
+          renderShop();
+          updateUI();
+          saveGame();
+        };
+        reader.readAsDataURL(f);
+      });
+
+      document.getElementById('closeSkinsModal').addEventListener('click', ()=>{ document.querySelectorAll('.modal-backdrop').forEach(n=>n.remove()); });
+    }
+
+    function placeholderSkinData(id){
+      const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='512' height='512'><rect width='100%' height='100%' fill='#2b2b2b'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' fill='#fff' font-size='28'>${id}</text></svg>`;
+      return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+    }
+
+    function renderOwnedSkins(){
+      skinList.innerHTML = '';
+      if(game.ownedSkins.length === 0){ skinList.innerHTML = '<div class="muted">No skins owned — open the Skins Shop to buy or upload.</div>'; return; }
+      game.ownedSkins.forEach(id => {
+        const s = game.skins[id];
+        if(!s) return;
+        const d = document.createElement('div'); d.className='upgrade'; d.style.alignItems='center';
+        const thumb = document.createElement('div'); thumb.className='skin-thumb'; const img = document.createElement('img'); img.src = s.dataUri || placeholderSkinData(id); thumb.appendChild(img);
+        const info = document.createElement('div'); info.style.flex='1'; info.innerHTML = `<div class='name'>${s.name}</div><small class='muted'>ID: ${id}</small>`;
+        const actions = document.createElement('div');
+        const equipBtn = document.createElement('button'); equipBtn.className='ghost-btn'; equipBtn.textContent = (game.selectedSkin === id) ? 'Equipped' : 'Equip'; equipBtn.addEventListener('click', ()=>{ equipSkin(id); updateUI(); });
+        const delBtn = document.createElement('button'); delBtn.className='ghost-btn'; delBtn.textContent='Delete'; delBtn.addEventListener('click', ()=>{ if(confirm('Delete this owned skin?')){ removeSkin(id); updateUI(); } });
+        actions.appendChild(equipBtn); actions.appendChild(delBtn);
+        d.appendChild(thumb); d.appendChild(info); d.appendChild(actions);
+        skinList.appendChild(d);
+      });
+
+      applySelectedSkinToButton();
+    }
+
+    function equipSkin(id){
+      if(!game.ownedSkins.includes(id)) return;
+      game.selectedSkin = id;
+      log(`Equipped skin: ${game.skins[id].name}`);
+      applySelectedSkinToButton();
+      saveGame();
+    }
+
+    function removeSkin(id){
+      const idx = game.ownedSkins.indexOf(id);
+      if(idx >= 0) game.ownedSkins.splice(idx,1);
+      if(game.skins[id]){
+        // if custom, delete entirely; if shop skin, mark as not owned
+        if(id.startsWith('custom_')) delete game.skins[id]; else game.skins[id].owned = false;
+      }
+      if(game.selectedSkin === id) game.selectedSkin = null;
+      log(`Removed skin: ${id}`);
+      saveGame();
+      renderOwnedSkins();
+    }
+
+    function applySelectedSkinToButton(){
+      const existing = bigBtn.querySelector('img.skin-img');
+      if(existing) existing.remove();
+      if(game.selectedSkin && game.skins[game.selectedSkin]){
+        const data = game.skins[game.selectedSkin].dataUri || placeholderSkinData(game.selectedSkin);
+        const img = document.createElement('img'); img.className = 'skin-img'; img.src = data; bigBtn.prepend(img);
+        bigLabel.style.display = 'none';
+      } else {
+        bigLabel.style.display = 'block';
+      }
+    }
+
+    function populateDefaultSkins(){
+      ensureSkins();
+      Object.values(game.skins).forEach(s=>{ if(s.price && !s.dataUri) s.dataUri = genPatternData(s.name); });
+    }
+
+    // Init / boot
+    function boot(){
+      Object.values(ITEMS).forEach(it=>{ if(it.type==='producer'){ game.producers[it.id] = game.producers[it.id] || 0; game.producerCosts[it.id] = game.producerCosts[it.id] || it.cost; }});
+      populateDefaultSkins();
+      renderStore();
+      renderAchievements();
+      loadGame();
+      updateUI();
+      applySelectedSkinToButton();
+      setInterval(()=>{ tick(); }, 1000);
+      setInterval(()=>{ saveGame(); }, 30000);
+      window.GAME = game;
+    }
+
+    boot();
+
+    // expose helpers
+    window.buyItemById = id => { if(ITEMS[id]) buyItem(ITEMS[id]); };
+    window.equipSkin = equipSkin;
+    window.removeSkin = removeSkin;
+
   </script>
 </body>
 </html>
