@@ -807,3 +807,454 @@ function loadGame(){
 }
 
 /* End of PART 1 */
+/* -------------------------
+   Skins modal + upload (with cost tiers)
+   Upload costs: tiered [200, 2k, 20k, 200k, 2M, 20M, 200M, 2B]
+   Each uploaded custom skin costs the current tier; tier increases after each upload
+*/
+const UPLOAD_TIERS = [200, 2000, 20000, 200000, 2000000, 20000000, 200000000, 2000000000];
+
+function openSkinsModal(){
+  const tpl = document.getElementById('skinsModalTpl');
+  const node = tpl.content.firstElementChild.cloneNode(true);
+  document.body.appendChild(node);
+  const shopBalance = document.getElementById('shopBalance');
+  const ownedPanel = document.getElementById('ownedSkinsPanel');
+  const shopSkins = document.getElementById('shopSkins');
+  const shopThemes = document.getElementById('shopThemes');
+  const search = document.getElementById('skinSearch');
+  const uploadInput = document.getElementById('uploadSkinInput');
+  const uploadBtn = document.getElementById('uploadSkinBtn');
+
+  function renderOwned(){
+    ownedPanel.innerHTML = '';
+    if(game.ownedSkins.length===0){ ownedPanel.innerHTML = '<div class="small">No owned skins/themes</div>'; return; }
+    game.ownedSkins.forEach(id=>{
+      const s = game.skins[id] || { id, name:id, dataUri:placeholderSkinData(id) };
+      const row = document.createElement('div'); row.style.display='flex'; row.style.gap='8px'; row.style.marginBottom='8px'; row.style.alignItems='center';
+      const thumb = document.createElement('div'); thumb.style.width='64px'; thumb.style.height='64px'; thumb.style.borderRadius='8px'; thumb.style.overflow='hidden';
+      const img = document.createElement('img'); img.src = s.dataUri || placeholderSkinData(s.id); img.style.width='100%'; img.style.height='100%'; img.style.objectFit='cover';
+      thumb.appendChild(img);
+      const info = document.createElement('div'); info.style.flex='1'; info.innerHTML = `<div style="font-weight:700">${s.name}</div><div class="small">ID: ${s.id}</div>`;
+      const actions = document.createElement('div');
+      const equip = document.createElement('button'); equip.className='ghost-btn'; equip.textContent='Equip'; equip.addEventListener('click', ()=>{ equipSkin(s.id); renderOwned(); renderSkinGrid(); updateUI(); });
+      const rem = document.createElement('button'); rem.className='ghost-btn'; rem.textContent='Delete'; rem.addEventListener('click', ()=>{ if(confirm('Delete this owned skin?')) { removeSkin(s.id); renderOwned(); }});
+      actions.appendChild(equip); actions.appendChild(rem);
+      row.appendChild(thumb); row.appendChild(info); row.appendChild(actions);
+      ownedPanel.appendChild(row);
+    });
+  }
+
+  function renderShopSkins(){
+    shopSkins.innerHTML = '';
+    const q = (search.value||'').toLowerCase();
+    Object.values(game.skins).forEach(s=>{
+      if(!s.price) return;
+      if(q && !s.name.toLowerCase().includes(q)) return;
+      const r = document.createElement('div'); r.style.display='flex'; r.style.gap='8px'; r.style.marginBottom='8px'; r.style.alignItems='center';
+      const thumb = document.createElement('div'); thumb.style.width='64px'; thumb.style.height='64px'; thumb.style.borderRadius='8px'; thumb.style.overflow='hidden';
+      const img = document.createElement('img'); img.src = s.dataUri || placeholderSkinData(s.id); img.style.width='100%'; img.style.height='100%'; img.style.objectFit='cover';
+      thumb.appendChild(img);
+      const info = document.createElement('div'); info.style.flex='1'; info.innerHTML = `<div style="font-weight:700">${s.name}</div><div class="small">Price: ${fmt(s.price)} cookies • ${s.rarity||'common'}</div>`;
+      const buyBtn = document.createElement('button'); buyBtn.className='buyBtn ghost-btn'; buyBtn.textContent = s.owned ? 'Owned' : 'Buy';
+      buyBtn.addEventListener('click', ()=>{
+        if(s.owned){ equipSkin(s.id); renderShopSkins(); renderOwned(); return; }
+        if(game.cookies < s.price) return alert('Not enough cookies to buy this skin.');
+        if(confirm(`Buy skin ${s.name} for ${fmt(s.price)} cookies?`)){
+          game.cookies -= s.price;
+          s.owned = true;
+          if(!game.ownedSkins.includes(s.id)) game.ownedSkins.push(s.id);
+          equipSkin(s.id);
+          saveGame();
+          renderShopSkins(); renderOwned(); updateUI();
+        }
+      });
+      r.appendChild(thumb); r.appendChild(info); r.appendChild(buyBtn);
+      shopSkins.appendChild(r);
+    });
+  }
+
+  function renderShopThemes(){
+    shopThemes.innerHTML = '';
+    const q = (search.value||'').toLowerCase();
+    Object.values(ITEMS).forEach(it=>{
+      if(it.type !== 'theme') return;
+      if(q && !it.name.toLowerCase().includes(q)) return;
+      const r = document.createElement('div'); r.style.display='flex'; r.style.gap='8px'; r.style.marginBottom='8px'; r.style.alignItems='center';
+      const thumb = document.createElement('div'); thumb.className='theme-preview'; thumb.style.background = '#0d1a24'; thumb.textContent='';
+      const info = document.createElement('div'); info.style.flex='1'; info.innerHTML = `<div style="font-weight:700">${it.name}</div><div class="small">Price: ${fmt(it.cost)} cookies</div>`;
+      const buyBtn = document.createElement('button'); buyBtn.className='buyBtn ghost-btn'; buyBtn.textContent = (game.ownedThemes && game.ownedThemes.includes(it.id)) ? 'Owned' : 'Buy';
+      buyBtn.addEventListener('click', ()=>{
+        if(game.cookies < it.cost) return alert('Not enough cookies.');
+        if(confirm(`Buy theme ${it.name} for ${fmt(it.cost)} cookies?`)){
+          game.cookies -= it.cost;
+          game.ownedThemes = game.ownedThemes || [];
+          if(!game.ownedThemes.includes(it.id)) game.ownedThemes.push(it.id);
+          applyTheme(it.id);
+          saveGame();
+          renderShopThemes();
+        }
+      });
+      r.appendChild(thumb); r.appendChild(info); r.appendChild(buyBtn);
+      shopThemes.appendChild(r);
+    });
+  }
+
+  shopBalance.textContent = fmt(game.cookies);
+  renderOwned();
+  renderShopSkins();
+  renderShopThemes();
+
+  // upload skin button behavior (upload cost tiers)
+  uploadBtn.addEventListener('click', ()=>{
+    const f = uploadInput.files && uploadInput.files[0];
+    if(!f) return alert('Choose an image file first.');
+    const tier = Math.min(game.uploadTier || 0, UPLOAD_TIERS.length-1);
+    const cost = UPLOAD_TIERS[tier] || UPLOAD_TIERS[UPLOAD_TIERS.length-1];
+    if(game.cookies < cost) return alert(`Uploading a custom skin costs ${fmt(cost)} cookies (current tier). Not enough cookies.`);
+    if(!confirm(`Upload ${f.name} as a custom skin for ${fmt(cost)} cookies?`)) return;
+    const reader = new FileReader();
+    reader.onload = function(ev){
+      const dataUri = ev.target.result;
+      const id = 'custom_' + Date.now();
+      game.skins[id] = { id, name: f.name.replace(/\.[^/.]+$/, ''), dataUri, price:0, rarity:'custom', owned:true };
+      if(!game.ownedSkins.includes(id)) game.ownedSkins.push(id);
+      game.cookies -= cost;
+      game.uploadTier = (game.uploadTier || 0) + 1;
+      addLog(`Uploaded skin: ${f.name} (paid ${fmt(cost)})`);
+      renderOwned();
+      renderShopSkins();
+      updateUI();
+      saveGame();
+    };
+    reader.readAsDataURL(f);
+  });
+
+  search.addEventListener('input', ()=>{ renderShopSkins(); renderShopThemes(); });
+
+  document.getElementById('closeSkinsModal').addEventListener('click', ()=>{ document.querySelectorAll('.modal-backdrop').forEach(n=>n.remove()); });
+}
+
+/* -------------------------
+   Prestige system
+   - cost starts at game.prestigeCost (20B)
+   - on prestige: reset upgrades & producers & producerCosts (you LOSE upgrades), increment prestige, multiply click power: implemented via click calculation
+   - prestige removes one-time upgrades, producers; retains skins, ownedThemes, prestige count
+*/
+function updatePrestigeUI(){
+  prestigeCostEl.textContent = fmt(game.prestigeCost || DEFAULT.prestigeCost);
+}
+
+function canPrestige(){
+  return game.cookies >= (game.prestigeCost || DEFAULT.prestigeCost);
+}
+
+function doPrestige(){
+  if(!canPrestige()) return addLog('Not enough cookies to prestige.');
+  if(!confirm(`Prestige for ${fmt(game.prestigeCost)} cookies? This will reset upgrades and producers but double your clicks per prestige.`)) return;
+  // spend cost
+  game.cookies -= game.prestigeCost;
+  // increase prestige
+  game.prestige = (game.prestige || 0) + 1;
+  // apply prestige effect: click multiplier via clickBake (we already use Math.pow(2,prestige))
+  // reset upgrades and producers
+  game.upgrades = {};
+  game.producers = {};
+  // reset producer costs
+  game.producerCosts = {};
+  Object.values(ITEMS).forEach(it=>{ if(it.type==='producer'){ game.producerCosts[it.id] = it.cost; game.producers[it.id] = 0; }});
+  // optionally reduce multiplier to base (we keep multiplier but many upgrades removed)
+  game.multiplier = 1;
+  // increase prestige cost (make it exponentially more expensive)
+  game.prestigeCost = Math.ceil((game.prestigeCost || DEFAULT.prestigeCost) * 10);
+  // Achievements / log
+  addLog(`Prestiged! You are now Prestige ${game.prestige}. Click power is doubled per prestige (cumulative).`);
+  announceToast(`Prestige +1 — Clicks x${Math.pow(2,game.prestige)}`);
+  recalcCps();
+  updateUI();
+  saveGame();
+}
+
+/* -------------------------
+   Admin panel logic
+   - Open with '[' keyboard (prompts for password every open)
+   - Close with ']' keyboard (closes admin panel)
+   - password is 'BakAdmin1'
+*/
+const ADMIN_PASSWORD = 'BakAdmin1';
+let adminModalOpen = false;
+
+function openAdminPanelPrompt(){
+  const p = prompt('Enter admin password:');
+  if(p === null) return; // cancelled
+  if(p !== ADMIN_PASSWORD){
+    alert('Incorrect admin password.');
+    addLog('Failed admin login attempt.');
+    return;
+  }
+  openAdminPanel();
+}
+
+function openAdminPanel(){
+  if(adminModalOpen) return;
+  const tpl = document.getElementById('adminModalTpl');
+  const node = tpl.content.firstElementChild.cloneNode(true);
+  document.body.appendChild(node);
+  adminModalOpen = true;
+  // Wire admin controls
+  document.getElementById('adminHoldToggle').checked = !!game.adminHoldEnabled;
+  document.getElementById('adminHoldToggle').addEventListener('change', (e)=>{ game.adminHoldEnabled = e.target.checked; saveGame(); addLog('Admin: Hold-space toggle set to ' + e.target.checked); });
+
+  document.getElementById('adminGrantCookiesBtn').addEventListener('click', ()=>{
+    const v = Number(document.getElementById('adminGrantCookies').value) || 0;
+    if(v<=0) return alert('Enter amount');
+    game.cookies += v;
+    addLog(`Admin: granted ${fmt(v)} cookies`);
+    updateUI();
+    saveGame();
+  });
+
+  document.getElementById('adminGiveUpgradeBtn').addEventListener('click', ()=>{
+    const id = document.getElementById('adminGiveUpgrade').value.trim();
+    if(!ITEMS[id]) return alert('Upgrade id not found.');
+    if(ITEMS[id].type === 'producer'){
+      game.producers[id] = (game.producers[id]||0) + 1;
+      addLog(`Admin: granted producer ${id}`);
+    } else {
+      game.upgrades[id] = true;
+      if(ITEMS[id].effect) try{ ITEMS[id].effect(game); }catch(e){}
+      addLog(`Admin: granted upgrade ${id}`);
+    }
+    recalcCps(); updateUI(); saveGame();
+  });
+
+  document.getElementById('adminSpawnSkinBtn').addEventListener('click', ()=>{
+    const nm = document.getElementById('adminSpawnSkinName').value.trim() || ('AdminSkin' + Date.now());
+    const id = 'admin_' + nm.toLowerCase().replace(/\s+/g,'_') + '_' + Date.now();
+    game.skins[id] = { id, name: nm, dataUri: genSkinSVG(nm), price:0, rarity:'admin', owned:true };
+    if(!game.ownedSkins.includes(id)) game.ownedSkins.push(id);
+    addLog(`Admin: spawned skin ${nm}`);
+    saveGame();
+    updateUI();
+  });
+
+  document.getElementById('adminForcePrestigeBtn').addEventListener('click', ()=>{
+    if(!confirm('Force a prestige? This will behave like normal prestige.')) return;
+    doPrestige();
+  });
+
+  document.getElementById('adminDevMode').checked = !!game.devMode;
+  document.getElementById('adminDevMode').addEventListener('change', (e)=>{ game.devMode = e.target.checked; addLog('Admin: Dev mode ' + e.target.checked); saveGame(); });
+
+  document.getElementById('adminCloseBtn').addEventListener('click', ()=>{
+    document.querySelectorAll('.admin-modal-backdrop').forEach(n=>n.remove()); adminModalOpen = false; addLog('Admin panel closed.');
+  });
+}
+
+function closeAdminPanel(){
+  document.querySelectorAll('.admin-modal-backdrop').forEach(n=>n.remove()); adminModalOpen = false;
+}
+
+/* -------------------------
+   Patch notes modal
+*/
+const PATCH_NOTES = [
+  {v:'4.0', text:'Major patch: prestige system, skins & themes, admin panel, 40+ upgrades, many achievements.'},
+  {v:'3.5', text:'Added skins upload, BroadcastChannel multi-presence, shop improvements.'},
+  {v:'3.0', text:'Initial multiplayer & skins demo and base upgrades.'}
+];
+
+function openPatchNotes(){
+  const tpl = document.createElement('div');
+  tpl.className = 'modal-backdrop';
+  tpl.innerHTML = `<div class="modal" role="dialog" aria-modal="true"><h3>Patch Notes</h3><div class="update-log" id="updateLog"></div><div style="display:flex;justify-content:flex-end;margin-top:8px"><button class="ghost-btn" id="closePatchBtn">Close</button></div></div>`;
+  document.body.appendChild(tpl);
+  const ul = document.getElementById('updateLog');
+  PATCH_NOTES.forEach(p=>{ const d = document.createElement('div'); d.innerHTML = `<div style="font-weight:700">${p.v}</div><div class="small">${p.text}</div><hr/>`; ul.appendChild(d); });
+  document.getElementById('closePatchBtn').addEventListener('click', ()=>{ document.querySelectorAll('.modal-backdrop').forEach(n=>n.remove()); });
+}
+
+/* -------------------------
+   Export / Import
+*/
+function exportSave(){
+  try{
+    const data = btoa(unescape(encodeURIComponent(JSON.stringify(game))));
+    navigator.clipboard?.writeText(data).then(()=>addLog('Export copied to clipboard.'));
+    const blob = new Blob([JSON.stringify(game, null, 2)], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'random_click_save.json'; a.click(); URL.revokeObjectURL(url);
+  }catch(e){ console.error(e); addLog('Export failed.'); }
+}
+
+function importSave(){
+  const txt = prompt('Paste exported save string (base64) or raw JSON');
+  if(!txt) return;
+  try{
+    let parsed;
+    if(/^[A-Za-z0-9+/=\s]+$/.test(txt.trim())){
+      parsed = JSON.parse(decodeURIComponent(escape(atob(txt.trim()))));
+    } else parsed = JSON.parse(txt);
+    // merge carefully
+    game = Object.assign({}, DEFAULT, parsed);
+    Object.values(ITEMS).forEach(it=>{ if(it.type==='producer'){ game.producers[it.id] = game.producers[it.id] || 0; game.producerCosts[it.id] = game.producerCosts[it.id] || it.cost; }});
+    recalcCps();
+    renderStore();
+    renderAchievements();
+    updateUI();
+    addLog('Imported save.');
+    saveGame();
+  }catch(e){ console.error(e); alert('Invalid import data'); }
+}
+
+/* -------------------------
+   Keyboard handling
+   - Space: click (prevent repeat spam unless adminHoldEnabled)
+   - S: save
+   - [: open admin (prompt password)
+   - ]: close admin
+*/
+let holdSpaceInterval = null;
+document.addEventListener('keydown', e=>{
+  if(e.code === 'Space'){
+    e.preventDefault();
+    // if repeat and admin hold enabled, allow repeated clicks via interval
+    if(e.repeat){
+      if(game.adminHoldEnabled){
+        if(!holdSpaceInterval){
+          holdSpaceInterval = setInterval(()=>{ clickBake(); }, 120); // fast but manageable
+        }
+      } else {
+        // ignore repeating events when not allowed
+      }
+    } else {
+      clickBake();
+    }
+  }
+  if(e.code === 'KeyS' && (e.ctrlKey || e.metaKey || !e.ctrlKey)) {
+    // allow 'S' to save (without interfering with default browser when ctrl is held)
+    if(!e.ctrlKey && !e.metaKey) { /* just plain S */ saveGame(); }
+    // if ctrl/cmd + S, let browser handle save of page
+  }
+  if(e.key === '[') { e.preventDefault(); openAdminPanelPrompt(); }
+  if(e.key === ']') { e.preventDefault(); closeAdminPanel(); }
+});
+
+document.addEventListener('keyup', e=>{
+  if(e.code === 'Space'){
+    if(holdSpaceInterval){ clearInterval(holdSpaceInterval); holdSpaceInterval = null; }
+  }
+});
+
+/* -------------------------
+   Visuals: tiny audio & button flash
+*/
+function flashBigButton(){
+  try{
+    bigBtn.animate([{transform:'scale(1)'},{transform:'scale(1.06)'},{transform:'scale(1)'}],{duration:180,easing:'cubic-bezier(.2,.9,.2,1)'});
+  }catch(e){}
+}
+function playTickSound(){
+  try{
+    if(!window.audioCtx) window.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const ctx = window.audioCtx;
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = 'sine'; o.frequency.value = 620 + (Math.random()*200);
+    g.gain.value = 0.02;
+    o.connect(g); g.connect(ctx.destination);
+    o.start();
+    setTimeout(()=>o.stop(),60);
+  }catch(e){}
+}
+
+/* -------------------------
+   Apply theme (simple examples)
+*/
+function applyTheme(id){
+  // cheap theme application for demo; real themes would change many CSS vars
+  document.body.classList.remove('theme_neon','theme_retro','theme_galaxy','theme_candy','theme_dark');
+  if(!id) return;
+  document.body.classList.add('theme_' + id);
+  addLog('Applied theme: ' + id);
+}
+
+/* -------------------------
+   Reset & misc helpers
+*/
+function resetGame(){
+  if(!confirm('Reset game? This will delete your local save.')) return;
+  localStorage.removeItem(SAVE_KEY);
+  game = JSON.parse(JSON.stringify(DEFAULT));
+  ensureSkinsAndThemes();
+  Object.values(ITEMS).forEach(it=>{ if(it.type==='producer'){ game.producers[it.id]=0; game.producerCosts[it.id]=it.cost;}});
+  recalcCps();
+  renderStore();
+  renderAchievements();
+  updateUI();
+  addLog('Game reset.');
+}
+
+/* -------------------------
+   Initialization & boot
+*/
+function initUIBindings(){
+  bigBtn.addEventListener('click', clickBake);
+  $('saveBtn').addEventListener('click', saveGame);
+  $('resetBtn').addEventListener('click', resetGame);
+  $('exportBtn').addEventListener('click', exportSave);
+  $('importBtn').addEventListener('click', importSave);
+  $('skinsBtn').addEventListener('click', openSkinsModal);
+  $('openSkinsShopBtn').addEventListener('click', openSkinsModal);
+  $('patchNotesBtn').addEventListener('click', openPatchNotes);
+  $('joinBtn').addEventListener('click', ()=>{
+    const nameInput = $('playerName');
+    const name = (nameInput.value||'').trim() || prompt('Enter your player name');
+    if(!name) return;
+    game.playerName = name;
+    addLog(`Joined as ${name}`);
+    saveGame();
+    broadcastPresence();
+    renderPlayerList();
+  });
+  $('simulateBtn').addEventListener('click', ()=>{
+    game.presence = game.presence||{};
+    for(let i=1;i<=4;i++){
+      const fake = `Bot${Math.floor(Math.random()*900)+100}`;
+      const skinIds = Object.keys(game.skins);
+      const pick = skinIds[Math.floor(Math.random()*skinIds.length)];
+      game.presence[fake] = { name: fake, selectedSkin: pick, cookies: Math.floor(Math.random()*100000) };
+    }
+    renderPlayerList();
+  });
+  prestigeBtnEl.addEventListener('click', ()=> doPrestige());
+}
+
+function boot(){
+  // ensure producers exist
+  Object.values(ITEMS).forEach(it=>{ if(it.type==='producer'){ game.producers[it.id] = game.producers[it.id] || 0; game.producerCosts[it.id] = game.producerCosts[it.id] || it.cost; }});
+  ensureSkinsAndThemes();
+  initBroadcastChannel();
+  initUIBindings();
+  renderStore();
+  renderAchievements();
+  loadGame();
+  updateUI();
+  applySelectedSkinToButton();
+  setInterval(()=>tick(), 1000);
+  setInterval(()=>saveGame(), 30000);
+  setInterval(()=>{ if(game.playerName) broadcastPresence(); }, 5000);
+  addLog('Random Click patched boot complete.');
+}
+boot();
+
+/* expose helpers for debugging */
+window.GAME = game;
+window.equipSkin = equipSkin;
+window.buyItemById = id => { if(ITEMS[id]) buyItem(ITEMS[id]); };
+window.openAdminPanel = openAdminPanel; // for devs
+window.doPrestige = doPrestige;
+
+</script>
+</body>
+</html>
